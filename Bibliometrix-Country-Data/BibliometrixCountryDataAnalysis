@@ -1,0 +1,38 @@
+import pandas as pd
+
+def clean_country(country):
+    """Clean and standardize country names."""
+    if "USA" in country:
+        return "USA"
+    elif "Peoples R China" in country:
+        return "China"
+    else:
+        return country
+
+def process_and_analyze(input_file_path):
+    # Load the data
+    df = pd.read_excel(input_file_path)
+    
+    # Expand 'Countries' column into multiple rows, ensuring each country is listed only once per row
+    s = df['Countries'].str.split(';').apply(pd.Series, 1).stack()
+    s.index = s.index.droplevel(-1)  # Drop level to align with df
+    s.name = 'Country'
+    s = s.apply(clean_country)  # Clean and standardize country names
+    df = df.drop('Countries', axis=1).join(s)
+    
+    # Group by 'Country' and 'Publication Year' and count the number of publications
+    publication_counts = df.groupby(['Country', 'Publication Year']).size().reset_index(name='Count')
+    
+    # Pivot the data to have countries as rows and years as columns
+    publication_pivot = publication_counts.pivot(index='Country', columns='Publication Year', values='Count').fillna(0)
+    
+    return publication_pivot
+
+if __name__ == "__main__":
+    input_file_path = "test333.xlsx"  # Update this to your actual input file path
+    output_file_path = "test333_groupby1.xlsx"  # Update this to your desired output file path
+    
+    publication_stats = process_and_analyze(input_file_path)
+    publication_stats.to_excel(output_file_path, index=True)
+    
+    print("Publication statistics have been successfully saved.")
