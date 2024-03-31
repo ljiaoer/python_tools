@@ -1,0 +1,43 @@
+### 使用了一个集合(set)来存储每行地址中提取的国家名称，从而去除了重复项。
+
+import pandas as pd
+import re
+
+def clean_addresses(address):
+    """Remove content within square brackets."""
+    if pd.isnull(address):
+        return ""
+    return re.sub(r"\[.*?\]", "", str(address)).strip()
+
+def extract_countries_from_modules_unique(address):
+    """Extract unique country names from address modules, applying special rules for USA and China."""
+    if pd.isnull(address):
+        return ""
+    address_no_brackets = re.sub(r"\[.*?\]", "", str(address))
+    modules = address_no_brackets.split(";")
+    countries_set = set()
+    for module in modules:
+        country = module.split(",")[-1].strip()
+        # Special rule for USA
+        if "USA" in country:
+            countries_set.add("USA")
+        # Replace Peoples R China with China
+        elif "Peoples R China" in country:
+            countries_set.add("China")
+        else:
+            countries_set.add(country)
+    return "; ".join(countries_set)
+
+def process_addresses_unique(input_file_path, output_file_path):
+    """Process addresses in the Excel file to extract unique countries and save the updated data to a new Excel file."""
+    df = pd.read_excel(input_file_path)
+    df['Addresses'] = df['Addresses'].apply(clean_addresses)
+    df['Countries'] = df['Addresses'].apply(extract_countries_from_modules_unique)
+    df.to_excel(output_file_path, index=False)
+
+if __name__ == "__main__":
+    input_file_path = "path_to_your_input_file.xlsx"  # Replace with the path to your input Excel file
+    output_file_path = "path_to_your_output_file.xlsx"  # Replace with the path to save the output Excel file
+    
+    process_addresses_unique(input_file_path, output_file_path)
+    print(f"Processed data has been saved to {output_file_path}")
